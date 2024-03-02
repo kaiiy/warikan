@@ -27,11 +27,6 @@ interface Amount {
   keisha?: number;
 }
 
-// 傾斜 (lz-stringからパース)
-// interface KeishaProps {
-//   name: string;
-//   amount: number;
-// }
 const KeishaSchema = object({
   name: string(),
   keisha: number(),
@@ -57,10 +52,18 @@ const App = () => {
   // 最小金額
   const [minAmount, setMinAmount] = useState(1000);
 
-  useEffect(() => {
+  const initAmounts = () => {
     const newAmounts = [...amounts];
+    for (let i = 0; i < newAmounts.length; i++) {
+      newAmounts[i].amount = 0;
+      newAmounts[i].count = 0;
+    }
     newAmounts[0].count = 1;
     setAmounts(newAmounts);
+  };
+
+  useEffect(() => {
+    initAmounts();
   }, []);
 
   const updateCount = (index: number, operate: operate) => {
@@ -96,6 +99,8 @@ const App = () => {
     try {
       const json = JSON.parse(decompressed);
       const keisha = parse(KeishaArraySchema, json);
+
+      initAmounts();
       const newAmounts = [...amounts];
       if (keisha.length > newAmounts.length) return;
 
@@ -132,24 +137,25 @@ const App = () => {
         newAmounts[i].amount = perAmount * minAmount;
       }
       setAmounts(newAmounts);
+    } else {
+      // 傾斜あり
+      let totalKeisha = 0;
+      for (let i = 0; i < amounts.length; i++) {
+        if (amounts[i].count <= 0) continue;
+        const keisha = amounts[i].keisha;
+        if (keisha === undefined) continue;
+        totalKeisha += keisha * amounts[i].count;
+      }
+      const newAmounts = [...amounts];
+      for (let i = 0; i < newAmounts.length; i++) {
+        if (newAmounts[i].count === 0) continue;
+        newAmounts[i].amount = Math.floor(
+          totalAmount * (newAmounts[i].keisha || 0) /
+            totalKeisha / minAmount,
+        ) * minAmount;
+      }
+      setAmounts(newAmounts);
     }
-    // 傾斜あり
-    let totalKeisha = 0;
-    for (let i = 0; i < amounts.length; i++) {
-      if (amounts[i].count <= 0) continue;
-      const keisha = amounts[i].keisha;
-      if (keisha === undefined) continue;
-      totalKeisha += keisha * amounts[i].count;
-    }
-    const newAmounts = [...amounts];
-    for (let i = 0; i < newAmounts.length; i++) {
-      if (newAmounts[i].count === 0) continue;
-      newAmounts[i].amount = Math.floor(
-        totalAmount * (newAmounts[i].keisha || 0) /
-          totalKeisha / minAmount,
-      ) * minAmount;
-    }
-    setAmounts(newAmounts);
   };
 
   return (
