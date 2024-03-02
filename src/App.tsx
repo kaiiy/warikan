@@ -6,11 +6,17 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { array, number, object, parse, string } from "valibot";
+import lzSting from "lz-string";
 
-type Amount = {
+const { decompressFromBase64 } = lzSting;
+
+interface Amount {
   // 名前
   name?: string;
   // 金額
@@ -19,7 +25,18 @@ type Amount = {
   count: number;
   // 傾斜
   keisha?: number;
-};
+}
+
+// 傾斜 (lz-stringからパース)
+// interface KeishaProps {
+//   name: string;
+//   amount: number;
+// }
+const KeishaSchema = object({
+  name: string(),
+  keisha: number(),
+});
+const KeishaArraySchema = array(KeishaSchema);
 
 const toNumber = (value: string) => {
   return Number(value.replace(/[^0-9]/g, ""));
@@ -70,6 +87,27 @@ const App = () => {
     setAmounts(newAmounts);
   };
 
+  const [maybeKeishaText, setMaybeKeishaText] = useState("");
+  // 傾斜を読み込む (lz-stringからパース)
+  const loadKeisha = () => {
+    const decompressed = decompressFromBase64(maybeKeishaText.trim());
+    if (decompressed === null) return;
+
+    try {
+      const json = JSON.parse(decompressed);
+      const keisha = parse(KeishaArraySchema, json);
+      const newAmounts = [...amounts];
+      if (keisha.length > newAmounts.length) return;
+
+      for (let i = 0; i < keisha.length; i++) {
+        newAmounts[i].name = keisha[i].name;
+        newAmounts[i].keisha = keisha[i].keisha;
+      }
+      setAmounts(newAmounts);
+    } catch (e) {
+    }
+  };
+
   // 傾斜が存在するか
   const existKeisha = () => {
     let flag = true;
@@ -84,6 +122,7 @@ const App = () => {
 
   // 割り勘計算
   const warikan = () => {
+    // 傾斜なし
     if (!existKeisha()) {
       const totalCount = amounts.reduce((acc, cur) => acc + cur.count, 0);
       const perAmount = Math.floor(totalAmount / totalCount / minAmount);
@@ -94,6 +133,23 @@ const App = () => {
       }
       setAmounts(newAmounts);
     }
+    // 傾斜あり
+    let totalKeisha = 0;
+    for (let i = 0; i < amounts.length; i++) {
+      if (amounts[i].count <= 0) continue;
+      const keisha = amounts[i].keisha;
+      if (keisha === undefined) continue;
+      totalKeisha += keisha * amounts[i].count;
+    }
+    const newAmounts = [...amounts];
+    for (let i = 0; i < newAmounts.length; i++) {
+      if (newAmounts[i].count === 0) continue;
+      newAmounts[i].amount = Math.floor(
+        totalAmount * (newAmounts[i].keisha || 0) /
+          totalKeisha / minAmount,
+      ) * minAmount;
+    }
+    setAmounts(newAmounts);
   };
 
   return (
@@ -156,7 +212,9 @@ const App = () => {
             <div key={index}>
               {/* 名前の表示  */}
               {amount.name && (
-                <p className="text-md mb-0 font-medium ">| {amount.name}</p>
+                <p className="text-md mb-0 font-medium ">
+                  | {amount.name} ({amount.keisha})
+                </p>
               )}
               <div className="flex items-center space-x-2 rounded-md border py-4 px-4">
                 {/* 人数  */}
@@ -214,6 +272,20 @@ const App = () => {
             </div>
           ))}
         </CardContent>
+        <CardFooter>
+          <div className="w-full">
+            <Textarea
+              className="mb-2"
+              onChange={(e) => setMaybeKeishaText(e.target.value)}
+            />
+            <Button
+              className="w-full"
+              onClick={() => loadKeisha()}
+            >
+              <Check className="mr-2 h-4 w-4" /> Load Keisha!!
+            </Button>
+          </div>
+        </CardFooter>
       </Card>
     </div>
   );

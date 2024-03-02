@@ -2290,6 +2290,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lz-string@npm:^1.5.0":
+  version: 1.5.0
+  resolution: "lz-string@npm:1.5.0"
+  bin:
+    lz-string: bin/bin.js
+  checksum: 10c0/36128e4de34791838abe979b19927c26e67201ca5acf00880377af7d765b38d1c60847e01c5ec61b1a260c48029084ab3893a3925fd6e48a04011364b089991b
+  languageName: node
+  linkType: hard
+
 "magic-string@npm:^0.30.0":
   version: 0.30.7
   resolution: "magic-string@npm:0.30.7"
@@ -3366,6 +3375,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"valibot@npm:^0.29.0":
+  version: 0.29.0
+  resolution: "valibot@npm:0.29.0"
+  checksum: 10c0/0bb277461bd7b7c16188a99567cd80353ac53c30a215fc007965eab009f6db84204845977118b1f5277eaef7cb1c5b9d60548fab453fc47eebfd30e67ebd6b9c
+  languageName: node
+  linkType: hard
+
 "vite-plugin-windicss@npm:^1.9.3":
   version: 1.9.3
   resolution: "vite-plugin-windicss@npm:1.9.3"
@@ -3439,6 +3455,7 @@ __metadata:
     eslint-plugin-react-hooks: "npm:^4.6.0"
     eslint-plugin-react-refresh: "npm:^0.4.5"
     lucide-react: "npm:^0.344.0"
+    lz-string: "npm:^1.5.0"
     postcss: "npm:^8.4.35"
     react: "npm:^18.2.0"
     react-dom: "npm:^18.2.0"
@@ -3446,6 +3463,7 @@ __metadata:
     tailwindcss: "npm:^3.4.1"
     tailwindcss-animate: "npm:^1.0.7"
     typescript: "npm:^5.3.3"
+    valibot: "npm:^0.29.0"
     vite: "npm:^5.1.4"
     vite-plugin-windicss: "npm:^1.9.3"
   languageName: unknown

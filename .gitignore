@@ -30,3 +30,6 @@ dist-ssr
 !.yarn/sdks
 !.yarn/versions
 .pnp.*
+
+keisha.js
+keisha.txt
