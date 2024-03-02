@@ -217,7 +217,7 @@ const App = () => {
           {amounts.map((amount, index) => (
             <div key={index}>
               {/* 名前の表示  */}
-              {amount.name && (
+              {(amount.name && amount.keisha) && (
                 <p className="text-md mb-0 font-medium ">
                   | {amount.name} ({amount.keisha})
                 </p>
