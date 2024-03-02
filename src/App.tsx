@@ -45,6 +45,7 @@ const App = () => {
     if (operate === "add") {
       currentAmount.count++;
     } else {
+      if (currentAmount.count === 0) return;
       currentAmount.count--;
     }
     setAmounts(newAmounts);
@@ -56,6 +57,7 @@ const App = () => {
     if (operate === "add") {
       currentAmount.amount += minAmount;
     } else {
+      if (currentAmount.amount - minAmount < 0) return;
       currentAmount.amount -= minAmount;
     }
     setAmounts(newAmounts);
@@ -132,10 +134,10 @@ const App = () => {
           {amounts.map((amount, index) => (
             <div
               key={index}
-              className="flex items-center space-x-4 rounded-md border p-4"
+              className="flex items-center space-x-2 rounded-md border py-4 px-4"
             >
               {/* 人数  */}
-              <div className="flex space-x-1">
+              <div className="space-x-1">
                 <UserRound className="h-6 w-6" />
 
                 <div>x{amount.count}</div>
