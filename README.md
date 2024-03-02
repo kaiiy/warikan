@@ -1,30 +1,52 @@
-# React + TypeScript + Vite
+# Warikan Calculator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+傾斜付き割り勘を計算します
 
-Currently, two official plugins are available:
+![screenshot](./img/screenshot.png)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 基本的な使い方 (傾斜なし)
 
-## Expanding the ESLint configuration
+1. 「合計金額」を入力
+2. 左側の-+ボタンで人数を調整
+3. 「Warikan!!」ボタンをクリック
+4. 端数金額を見つつ、右側の-+ボタンで金額調整
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## 傾斜あり
 
-- Configure the top-level `parserOptions` property like this:
+0. 事前に以下のプログラムで傾斜に対応する圧縮文字列を計算しておきます
+1. ページの下の方にあるテキストエリアに圧縮文字列をペースト
+2. 「Load Keisha!!」ボタンをクリック
+3. 以下、傾斜なしと同じ (傾斜なしの1.から順に実行)
 
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
+```ts
+import pkg from "lz-string";
+const { compressToBase64 } = pkg;
+
+const keisha = [
+    {
+        name: "role1",
+        keisha: 1.2,
+    },
+    {
+       name: "role2",
+       keisha: 1.0,
+    }
+]
+
+console.log(compressToBase64(JSON.stringify(keisha)));
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+keisha パラメータは name 間で比率が同じであれば、計算結果は同じです。すなわち、上で提示したコードと以下のコードは同じ動作をします。
+
+```ts
+const keisha = [
+    {
+        name: "role1",
+        keisha: 12,
+    },
+    {
+       name: "role2",
+       keisha: 10,
+    }
+]
+```
