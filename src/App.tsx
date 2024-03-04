@@ -227,13 +227,13 @@ const App = () => {
             <TabsContent value="warikan" className="grid gap-4">
               {/* 支払い合計金額入力  */}
               <div className="pt-2">
-                <p className="text-sm font-medium mb-1">合計金額</p>
-                <div className="flex space-x-2 items-center">
+                <p className="mb-1 text-sm font-medium">合計金額</p>
+                <div className="flex items-center space-x-2">
                   <JapaneseYen />
                   <Input
                     type="text"
                     value={totalAmount}
-                    className="text-lg font-medium flex-1"
+                    className="flex-1 text-lg font-medium"
                     onChange={(e) => setTotalAmount(toNumber(e.target.value))}
                   />
                   <p className="text-lg font-medium">円</p>
@@ -241,10 +241,10 @@ const App = () => {
               </div>
               {/* 端数 */}
               <div>
-                <p className="text-sm font-medium mb-2">端数金額</p>
-                <div className="flex space-x-2 items-center">
+                <p className="mb-2 text-sm font-medium">端数金額</p>
+                <div className="flex items-center space-x-2">
                   <JapaneseYen className="mr-3" />
-                  <p className="text-lg font-medium flex-1">
+                  <p className="flex-1 text-lg font-medium">
                     {(totalAmount -
                       amounts.reduce(
                         (acc, cur) => acc + cur.amount * cur.count,
@@ -257,13 +257,13 @@ const App = () => {
               </div>
               {/* 最小単位金額 */}
               <div>
-                <p className="text-sm font-medium mb-1">最小単位金額</p>
-                <div className="flex space-x-2 items-center">
+                <p className="mb-1 text-sm font-medium">最小単位金額</p>
+                <div className="flex items-center space-x-2">
                   <JapaneseYen />
                   <Input
                     type="text"
                     value={minAmount}
-                    className="text-lg font-medium flex-1"
+                    className="flex-1 text-lg font-medium"
                     onChange={(e) => setMinAmount(toNumber(e.target.value))}
                   />
                   <p className="text-lg font-medium">円</p>
@@ -271,7 +271,7 @@ const App = () => {
               </div>
               {/* 割り勘 */}
               <Button className="w-full" onClick={() => warikan()}>
-                <Check className="mr-2 h-4 w-4" /> Warikan!!
+                <Check className="mr-2 size-4" /> Warikan!!
               </Button>
               {/* 参加者の料金 */}
               {amounts.map((amount, index) => (
@@ -282,23 +282,23 @@ const App = () => {
                       | {amount.name} ({amount.keisha})
                     </p>
                   )}
-                  <div className="flex items-center space-x-2 rounded-md border py-4 px-4">
+                  <div className="flex items-center space-x-2 rounded-md border p-4">
                     {/* 人数  */}
                     <div className="space-x-1">
-                      <UserRound className="h-6 w-6" />
+                      <UserRound className="size-6" />
 
                       <div>x{amount.count}</div>
                     </div>
 
                     {/* 人数増減  */}
-                    <div className="flex space-x-2 flex-1">
+                    <div className="flex flex-1 space-x-2">
                       <Button
                         variant="outline"
                         size="icon"
                         className="rounded-full"
                         onClick={() => updateCount(index, "sub")}
                       >
-                        <Minus className="h-4 w-4" />
+                        <Minus className="size-4" />
                       </Button>
                       <Button
                         variant="outline"
@@ -306,7 +306,7 @@ const App = () => {
                         className="rounded-full"
                         onClick={() => updateCount(index, "add")}
                       >
-                        <Plus className="h-4 w-4" />
+                        <Plus className="size-4" />
                       </Button>
                     </div>
 
@@ -323,7 +323,7 @@ const App = () => {
                         className="rounded-full"
                         onClick={() => updateAmount(index, "sub")}
                       >
-                        <Minus className="h-4 w-4" />
+                        <Minus className="size-4" />
                       </Button>
                       <Button
                         variant="outline"
@@ -331,7 +331,7 @@ const App = () => {
                         className="rounded-full"
                         onClick={() => updateAmount(index, "add")}
                       >
-                        <Plus className="h-4 w-4" />
+                        <Plus className="size-4" />
                       </Button>
                     </div>
                   </div>
@@ -341,7 +341,7 @@ const App = () => {
 
             <TabsContent value="keisha">
               <div className="mb-4 mt-0">
-                <p className="text-sm font-medium mb-1">傾斜設定</p>
+                <p className="mb-1 text-sm font-medium">傾斜設定</p>
                 <Textarea
                   className="mb-2"
                   value={maybeKeishaText}
@@ -352,14 +352,14 @@ const App = () => {
                   className="w-full"
                   onClick={() => loadKeisha()}
                 >
-                  <Check className="mr-2 h-4 w-4" /> Load Keisha!!
+                  <Check className="mr-2 size-4" /> Load Keisha!!
                 </Button>
               </div>
               <Separator className="mb-4" />
               <div>
-                <p className="text-sm font-medium mb-2">傾斜文字列計算</p>
+                <p className="mb-2 text-sm font-medium">傾斜文字列計算</p>
 
-                <div className="grid gap-4 mb-4">
+                <div className="mb-4 grid gap-4">
                   {keisha.map((k, index) => (
                     <div key={index} className="flex space-x-2">
                       <Input
@@ -385,7 +385,7 @@ const App = () => {
                   className="w-full"
                   onClick={() => calcKeishaLzSting()}
                 >
-                  <Check className="mr-2 h-4 w-4" />Calculate Keisha!!
+                  <Check className="mr-2 size-4" />Calculate Keisha!!
                 </Button>
               </div>
             </TabsContent>
