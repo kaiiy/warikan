@@ -11,41 +11,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  array,
-  number,
-  object,
-  safeParse as vSafeParse,
-  string,
-} from "valibot";
-import lzSting from "lz-string";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { forceParse, safeParse } from "@/lib/parse";
-
-const { decompressFromBase64, compressToBase64 } = lzSting;
-
-interface Amount {
-  // 名前
-  name?: string;
-  // 金額
-  amount: number;
-  // 人数
-  count: number;
-  // 傾斜
-  keisha?: number;
-}
-
-const KeishaSchema = object({
-  name: string(),
-  keisha: number(),
-});
-const KeishaArraySchema = array(KeishaSchema);
-interface KeishaString {
-  name: string;
-  keisha: string;
-}
-
-type operate = "add" | "sub";
+import { Amount, KeishaArrayString, Operate } from "@/lib/type";
 
 // 人数
 const NUM_PEOPLE = 12;
@@ -60,7 +28,7 @@ const App = () => {
   // 最小金額
   const [minAmount, setMinAmount] = useState(1000);
   // 数値バリデーション前 傾斜列 (入力そのまま)
-  const [keishaArrayString, setKeishaArrayString] = useState<KeishaString[]>(
+  const [keishaArrayString, setKeishaArrayString] = useState<KeishaArrayString>(
     Array.from(
       { length: NUM_PEOPLE },
       () => ({ name: "", keisha: "" }),
@@ -78,7 +46,7 @@ const App = () => {
   };
 
   // 人数更新
-  const updateCount = (index: number, operate: operate) => {
+  const updateCount = (index: number, operate: Operate) => {
     const newAmounts = [...amounts];
     const currentAmount = newAmounts[index];
     if (operate === "add") {
@@ -91,7 +59,7 @@ const App = () => {
   };
 
   // 個別料金更新
-  const updateAmount = (index: number, operate: operate) => {
+  const updateAmount = (index: number, operate: Operate) => {
     const newAmounts = [...amounts];
     const currentAmount = newAmounts[index];
     if (operate === "add") {
@@ -108,17 +76,11 @@ const App = () => {
 
   // 傾斜を読み込む (lz-stringからパース)
   const loadKeisha = () => {
-    // 傾斜文字列読み込み: 始め
-    const decompressed = decompressFromBase64(maybeKeishaText.trim());
-    if (decompressed === null) return;
+    // 傾斜文字列読み込み
+    const newKeishaArrayResult = safeParse.keishaArrayFromStr(maybeKeishaText);
+    if (!newKeishaArrayResult.success) return;
 
-    const jsonResult = safeParse.json(decompressed);
-    if (!jsonResult.success) return;
-
-    const _keishaResult = vSafeParse(KeishaArraySchema, jsonResult.value);
-    if (!_keishaResult.success) return;
-
-    const newKeishaArray = _keishaResult.output;
+    const newKeishaArray = newKeishaArrayResult.value;
     if (
       newKeishaArray.length > NUM_PEOPLE
     ) return;
@@ -191,26 +153,12 @@ const App = () => {
     newKeisha[index].keisha = value;
     setKeishaArrayString(newKeisha);
   };
-  const calcKeishaLzSting = () => {
-    const newKeishaArray = [...keishaArrayString].map((k) => {
-      const numResult = safeParse.number(k.keisha);
-      if (!numResult.success) {
-        return {
-          name: k.name,
-          keisha: 0,
-        };
-      }
 
-      return {
-        name: k.name,
-        keisha: numResult.value,
-      };
-    });
-    const filtered = newKeishaArray.filter((k) =>
-      k.name !== "" && k.keisha !== 0
-    );
-    const compressed = compressToBase64(JSON.stringify(filtered));
-    setMaybeKeishaText(compressed);
+  // 傾斜文字列計算 (ボタンクリック時)
+  const calcKeishaLzSting = () => {
+    const newKeishaArray = safeParse.keishaArrayFromKAS(keishaArrayString);
+    const keishaString = safeParse.keishaString(newKeishaArray);
+    setMaybeKeishaText(keishaString);
   };
 
   // 初回画面描画時に初期化
