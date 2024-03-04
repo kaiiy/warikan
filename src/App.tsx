@@ -2,19 +2,20 @@ import { useEffect, useState } from "react";
 import { Check, JapaneseYen, Minus, Plus, UserRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { array, number, object, parse, string } from "valibot";
+import { array, number, object, Output, parse, string } from "valibot";
 import lzSting from "lz-string";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const { decompressFromBase64 } = lzSting;
+const { decompressFromBase64, compressToBase64 } = lzSting;
 
 interface Amount {
   // 名前
@@ -32,20 +33,35 @@ const KeishaSchema = object({
   keisha: number(),
 });
 const KeishaArraySchema = array(KeishaSchema);
+type Keisha = Output<typeof KeishaSchema>;
+interface KeishaString {
+  name: string;
+  keisha: string;
+}
 
 const toNumber = (value: string) => {
   return Number(value.replace(/[^0-9]/g, ""));
 };
 
+const toSafeNumber = (value: string) => {
+  try {
+    return Number(value);
+  } catch (e) {
+    return 0;
+  }
+};
+
 type operate = "add" | "sub";
 
 const App = () => {
+  // 人数
+  const numPeople = 12;
   // 支払い合計金額
   const [totalAmount, setTotalAmount] = useState(0);
   // 参加者の料金
   const [amounts, setAmounts] = useState<Amount[]>(
     Array.from(
-      { length: 12 },
+      { length: numPeople },
       () => ({ amount: 0, count: 0 }),
     ),
   );
@@ -98,17 +114,24 @@ const App = () => {
 
     try {
       const json = JSON.parse(decompressed);
-      const keisha = parse(KeishaArraySchema, json);
+      const _keisha = parse(KeishaArraySchema, json);
 
       initAmounts();
       const newAmounts = [...amounts];
-      if (keisha.length > newAmounts.length) return;
+      const newKeisha = [...keisha];
+      if (_keisha.length > newAmounts.length) return;
+      if (_keisha.length > newKeisha.length) return;
 
-      for (let i = 0; i < keisha.length; i++) {
-        newAmounts[i].name = keisha[i].name;
-        newAmounts[i].keisha = keisha[i].keisha;
+      for (let i = 0; i < _keisha.length; i++) {
+        newAmounts[i].name = _keisha[i].name;
+        newAmounts[i].keisha = _keisha[i].keisha;
+        newAmounts[i].count = 1;
+
+        newKeisha[i].name = _keisha[i].name;
+        newKeisha[i].keisha = _keisha[i].keisha.toString();
       }
       setAmounts(newAmounts);
+      setKeisha(newKeisha);
     } catch (e) {
     }
   };
@@ -158,6 +181,32 @@ const App = () => {
     }
   };
 
+  const [keisha, setKeisha] = useState<KeishaString[]>(Array.from(
+    { length: numPeople },
+    () => ({ name: "", keisha: "" }),
+  ));
+  const setName = (index: number, name: string) => {
+    const newKeisha = [...keisha];
+    newKeisha[index].name = name;
+    setKeisha(newKeisha);
+  };
+  const setKeishaValue = (index: number, value: string) => {
+    const newKeisha = [...keisha];
+    newKeisha[index].keisha = value;
+    setKeisha(newKeisha);
+  };
+  const calcKeishaLzSting = () => {
+    const newKeisha: Keisha[] = [...keisha].map((k) => {
+      return {
+        name: k.name,
+        keisha: toSafeNumber(k.keisha),
+      };
+    });
+    const filtered = newKeisha.filter((k) => k.name !== "" && k.keisha !== 0);
+    const compressed = compressToBase64(JSON.stringify(filtered));
+    setMaybeKeishaText(compressed);
+  };
+
   return (
     <div className="flex justify-center">
       <Card className="w-full md:w-1/2">
@@ -167,131 +216,181 @@ const App = () => {
             適切な支払い金額を計算しましょう
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4">
-          {/* 支払い合計金額入力  */}
-          <div>
-            <p className="text-sm font-medium mb-1">合計金額</p>
-            <div className="flex space-x-2 items-center">
-              <JapaneseYen />
-              <Input
-                type="text"
-                value={totalAmount}
-                className="text-lg font-medium flex-1"
-                onChange={(e) => setTotalAmount(toNumber(e.target.value))}
-              />
-              <p className="text-lg font-medium">円</p>
-            </div>
-          </div>
-          {/* 端数 */}
-          <div>
-            <p className="text-sm font-medium mb-2">端数金額</p>
-            <div className="flex space-x-2 items-center">
-              <JapaneseYen className="mr-3" />
-              <p className="text-lg font-medium flex-1">
-                {(totalAmount -
-                  amounts.reduce((acc, cur) => acc + cur.amount * cur.count, 0))
-                  .toLocaleString()}
-              </p>
-              <p className="text-lg font-medium">円</p>
-            </div>
-          </div>
-          {/* 最小単位金額 */}
-          <div>
-            <p className="text-sm font-medium mb-1">最小単位金額</p>
-            <div className="flex space-x-2 items-center">
-              <JapaneseYen />
-              <Input
-                type="text"
-                value={minAmount}
-                className="text-lg font-medium flex-1"
-                onChange={(e) => setMinAmount(toNumber(e.target.value))}
-              />
-              <p className="text-lg font-medium">円</p>
-            </div>
-          </div>
-          {/* 割り勘 */}
-          <Button className="w-full" onClick={() => warikan()}>
-            <Check className="mr-2 h-4 w-4" /> Warikan!!
-          </Button>
-          {/* 参加者の料金 */}
-          {amounts.map((amount, index) => (
-            <div key={index}>
-              {/* 名前の表示  */}
-              {(amount.name && amount.keisha) && (
-                <p className="text-md mb-0 font-medium ">
-                  | {amount.name} ({amount.keisha})
-                </p>
-              )}
-              <div className="flex items-center space-x-2 rounded-md border py-4 px-4">
-                {/* 人数  */}
-                <div className="space-x-1">
-                  <UserRound className="h-6 w-6" />
 
-                  <div>x{amount.count}</div>
-                </div>
+        <CardContent>
+          <Tabs defaultValue="warikan">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="warikan">Warikan</TabsTrigger>
+              <TabsTrigger value="keisha">Keisha</TabsTrigger>
+            </TabsList>
 
-                {/* 人数増減  */}
-                <div className="flex space-x-2 flex-1">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full"
-                    onClick={() => updateCount(index, "sub")}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full"
-                    onClick={() => updateCount(index, "add")}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {/* 金額  */}
-                <p className="text-lg font-medium leading-none">
-                  {amount.amount.toLocaleString()} 円
-                </p>
-
-                {/* 金額増減  */}
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full"
-                    onClick={() => updateAmount(index, "sub")}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full"
-                    onClick={() => updateAmount(index, "add")}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+            <TabsContent value="warikan" className="grid gap-4">
+              {/* 支払い合計金額入力  */}
+              <div className="pt-2">
+                <p className="text-sm font-medium mb-1">合計金額</p>
+                <div className="flex space-x-2 items-center">
+                  <JapaneseYen />
+                  <Input
+                    type="text"
+                    value={totalAmount}
+                    className="text-lg font-medium flex-1"
+                    onChange={(e) => setTotalAmount(toNumber(e.target.value))}
+                  />
+                  <p className="text-lg font-medium">円</p>
                 </div>
               </div>
-            </div>
-          ))}
+              {/* 端数 */}
+              <div>
+                <p className="text-sm font-medium mb-2">端数金額</p>
+                <div className="flex space-x-2 items-center">
+                  <JapaneseYen className="mr-3" />
+                  <p className="text-lg font-medium flex-1">
+                    {(totalAmount -
+                      amounts.reduce(
+                        (acc, cur) => acc + cur.amount * cur.count,
+                        0,
+                      ))
+                      .toLocaleString()}
+                  </p>
+                  <p className="text-lg font-medium">円</p>
+                </div>
+              </div>
+              {/* 最小単位金額 */}
+              <div>
+                <p className="text-sm font-medium mb-1">最小単位金額</p>
+                <div className="flex space-x-2 items-center">
+                  <JapaneseYen />
+                  <Input
+                    type="text"
+                    value={minAmount}
+                    className="text-lg font-medium flex-1"
+                    onChange={(e) => setMinAmount(toNumber(e.target.value))}
+                  />
+                  <p className="text-lg font-medium">円</p>
+                </div>
+              </div>
+              {/* 割り勘 */}
+              <Button className="w-full" onClick={() => warikan()}>
+                <Check className="mr-2 h-4 w-4" /> Warikan!!
+              </Button>
+              {/* 参加者の料金 */}
+              {amounts.map((amount, index) => (
+                <div key={index}>
+                  {/* 名前の表示  */}
+                  {(amount.name && amount.keisha) && (
+                    <p className="text-md mb-0 font-medium">
+                      | {amount.name} ({amount.keisha})
+                    </p>
+                  )}
+                  <div className="flex items-center space-x-2 rounded-md border py-4 px-4">
+                    {/* 人数  */}
+                    <div className="space-x-1">
+                      <UserRound className="h-6 w-6" />
+
+                      <div>x{amount.count}</div>
+                    </div>
+
+                    {/* 人数増減  */}
+                    <div className="flex space-x-2 flex-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full"
+                        onClick={() => updateCount(index, "sub")}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full"
+                        onClick={() => updateCount(index, "add")}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* 金額  */}
+                    <p className="text-lg font-medium leading-none">
+                      {amount.amount.toLocaleString()} 円
+                    </p>
+
+                    {/* 金額増減  */}
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full"
+                        onClick={() => updateAmount(index, "sub")}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full"
+                        onClick={() => updateAmount(index, "add")}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </TabsContent>
+
+            <TabsContent value="keisha">
+              <div className="mb-4 mt-0">
+                <p className="text-sm font-medium mb-1">傾斜設定</p>
+                <Textarea
+                  className="mb-2"
+                  value={maybeKeishaText}
+                  placeholder="傾斜文字列を入力してください"
+                  onChange={(e) => setMaybeKeishaText(e.target.value)}
+                />
+                <Button
+                  className="w-full"
+                  onClick={() => loadKeisha()}
+                >
+                  <Check className="mr-2 h-4 w-4" /> Load Keisha!!
+                </Button>
+              </div>
+              <Separator className="mb-4" />
+              <div>
+                <p className="text-sm font-medium mb-2">傾斜文字列計算</p>
+
+                <div className="grid gap-4 mb-4">
+                  {keisha.map((k, index) => (
+                    <div key={index} className="flex space-x-2">
+                      <Input
+                        type="text"
+                        value={k.name}
+                        placeholder="名前"
+                        className="text-sm"
+                        onChange={(e) =>
+                          setName(index, e.target.value)}
+                      />
+                      <Input
+                        type="text"
+                        value={k.keisha ? k.keisha : ""}
+                        placeholder="傾斜率"
+                        className="text-sm"
+                        onChange={(e) =>
+                          setKeishaValue(index, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={() => calcKeishaLzSting()}
+                >
+                  <Check className="mr-2 h-4 w-4" />Calculate Keisha!!
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
-        <CardFooter>
-          <div className="w-full">
-            <Textarea
-              className="mb-2"
-              onChange={(e) => setMaybeKeishaText(e.target.value)}
-            />
-            <Button
-              className="w-full"
-              onClick={() => loadKeisha()}
-            >
-              <Check className="mr-2 h-4 w-4" /> Load Keisha!!
-            </Button>
-          </div>
-        </CardFooter>
       </Card>
     </div>
   );
