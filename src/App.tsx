@@ -11,9 +11,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { array, number, object, Output, parse, string } from "valibot";
+import {
+  array,
+  number,
+  object,
+  Output,
+  safeParse as vSafeParse,
+  string,
+} from "valibot";
 import lzSting from "lz-string";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { forceParse, safeParse } from "@/lib/parse";
 
 const { decompressFromBase64, compressToBase64 } = lzSting;
 
@@ -39,18 +47,6 @@ interface KeishaString {
   keisha: string;
 }
 
-const toNumber = (value: string) => {
-  return Number(value.replace(/[^0-9]/g, ""));
-};
-
-const toSafeNumber = (value: string) => {
-  try {
-    return Number(value);
-  } catch (e) {
-    return 0;
-  }
-};
-
 type operate = "add" | "sub";
 
 const App = () => {
@@ -68,12 +64,12 @@ const App = () => {
   // 最小金額
   const [minAmount, setMinAmount] = useState(1000);
 
+  // 個別料金の初期化
   const initAmounts = () => {
-    const newAmounts = [...amounts];
-    for (let i = 0; i < newAmounts.length; i++) {
-      newAmounts[i].amount = 0;
-      newAmounts[i].count = 0;
-    }
+    const newAmounts = Array.from(
+      { length: numPeople },
+      () => ({ amount: 0, count: 0 }),
+    );
     newAmounts[0].count = 1;
     setAmounts(newAmounts);
   };
@@ -112,28 +108,29 @@ const App = () => {
     const decompressed = decompressFromBase64(maybeKeishaText.trim());
     if (decompressed === null) return;
 
-    try {
-      const json = JSON.parse(decompressed);
-      const _keisha = parse(KeishaArraySchema, json);
+    const jsonResult = safeParse.json(decompressed);
+    if (!jsonResult.success) return;
 
-      initAmounts();
-      const newAmounts = [...amounts];
-      const newKeisha = [...keisha];
-      if (_keisha.length > newAmounts.length) return;
-      if (_keisha.length > newKeisha.length) return;
+    const _keishaResult = vSafeParse(KeishaArraySchema, jsonResult.value);
+    if (!_keishaResult.success) return;
+    const _keisha = _keishaResult.output;
 
-      for (let i = 0; i < _keisha.length; i++) {
-        newAmounts[i].name = _keisha[i].name;
-        newAmounts[i].keisha = _keisha[i].keisha;
-        newAmounts[i].count = 1;
+    initAmounts();
+    const newAmounts = [...amounts];
+    const newKeisha = [...keisha];
+    if (_keisha.length > newAmounts.length) return;
+    if (_keisha.length > newKeisha.length) return;
 
-        newKeisha[i].name = _keisha[i].name;
-        newKeisha[i].keisha = _keisha[i].keisha.toString();
-      }
-      setAmounts(newAmounts);
-      setKeisha(newKeisha);
-    } catch (e) {
+    for (let i = 0; i < _keisha.length; i++) {
+      newAmounts[i].name = _keisha[i].name;
+      newAmounts[i].keisha = _keisha[i].keisha;
+      newAmounts[i].count = 1;
+
+      newKeisha[i].name = _keisha[i].name;
+      newKeisha[i].keisha = _keisha[i].keisha.toString();
     }
+    setAmounts(newAmounts);
+    setKeisha(newKeisha);
   };
 
   // 傾斜が存在するか
@@ -197,10 +194,18 @@ const App = () => {
   };
   const calcKeishaLzSting = () => {
     const newKeisha: Keisha[] = [...keisha].map((k) => {
-      return {
-        name: k.name,
-        keisha: toSafeNumber(k.keisha),
-      };
+      const numResult = safeParse.number(k.keisha);
+      if (numResult.success) {
+        return {
+          name: k.name,
+          keisha: numResult.value,
+        };
+      } else {
+        return {
+          name: k.name,
+          keisha: 0,
+        };
+      }
     });
     const filtered = newKeisha.filter((k) => k.name !== "" && k.keisha !== 0);
     const compressed = compressToBase64(JSON.stringify(filtered));
@@ -232,9 +237,12 @@ const App = () => {
                   <JapaneseYen />
                   <Input
                     type="text"
-                    value={totalAmount}
+                    value={totalAmount === 0
+                      ? ""
+                      : totalAmount.toLocaleString()}
                     className="flex-1 text-lg font-medium"
-                    onChange={(e) => setTotalAmount(toNumber(e.target.value))}
+                    onChange={(e) =>
+                      setTotalAmount(forceParse.number(e.target.value))}
                   />
                   <p className="text-lg font-medium">円</p>
                 </div>
@@ -262,9 +270,10 @@ const App = () => {
                   <JapaneseYen />
                   <Input
                     type="text"
-                    value={minAmount}
+                    value={minAmount === 0 ? "" : minAmount.toLocaleString()}
                     className="flex-1 text-lg font-medium"
-                    onChange={(e) => setMinAmount(toNumber(e.target.value))}
+                    onChange={(e) =>
+                      setMinAmount(forceParse.number(e.target.value))}
                   />
                   <p className="text-lg font-medium">円</p>
                 </div>
