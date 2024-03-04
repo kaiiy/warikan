@@ -172,7 +172,17 @@ const App = () => {
         <CardHeader>
           <CardTitle>Warikan Calculator</CardTitle>
           <CardDescription>
-            適切な支払い金額を計算しましょう
+            <p>適切な支払い金額を計算しましょう</p>
+            <p>
+              使い方は<a
+                href="https://github.com/kaiiy/warikan"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                こちら
+              </a>
+            </p>
           </CardDescription>
         </CardHeader>
 
