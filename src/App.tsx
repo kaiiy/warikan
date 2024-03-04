@@ -15,7 +15,6 @@ import {
   array,
   number,
   object,
-  Output,
   safeParse as vSafeParse,
   string,
 } from "valibot";
@@ -41,7 +40,6 @@ const KeishaSchema = object({
   keisha: number(),
 });
 const KeishaArraySchema = array(KeishaSchema);
-type Keisha = Output<typeof KeishaSchema>;
 interface KeishaString {
   name: string;
   keisha: string;
@@ -49,35 +47,37 @@ interface KeishaString {
 
 type operate = "add" | "sub";
 
+// 人数
+const NUM_PEOPLE = 12;
+
 const App = () => {
-  // 人数
-  const numPeople = 12;
   // 支払い合計金額
   const [totalAmount, setTotalAmount] = useState(0);
   // 参加者の料金
   const [amounts, setAmounts] = useState<Amount[]>(
-    Array.from(
-      { length: numPeople },
-      () => ({ amount: 0, count: 0 }),
-    ),
+    Array.from({ length: NUM_PEOPLE }, () => ({ amount: 0, count: 0 })),
   );
   // 最小金額
   const [minAmount, setMinAmount] = useState(1000);
+  // 数値バリデーション前 傾斜列 (入力そのまま)
+  const [keishaArrayString, setKeishaArrayString] = useState<KeishaString[]>(
+    Array.from(
+      { length: NUM_PEOPLE },
+      () => ({ name: "", keisha: "" }),
+    ),
+  );
 
   // 個別料金の初期化
   const initAmounts = () => {
     const newAmounts = Array.from(
-      { length: numPeople },
+      { length: NUM_PEOPLE },
       () => ({ amount: 0, count: 0 }),
     );
     newAmounts[0].count = 1;
     setAmounts(newAmounts);
   };
 
-  useEffect(() => {
-    initAmounts();
-  }, []);
-
+  // 人数更新
   const updateCount = (index: number, operate: operate) => {
     const newAmounts = [...amounts];
     const currentAmount = newAmounts[index];
@@ -90,6 +90,7 @@ const App = () => {
     setAmounts(newAmounts);
   };
 
+  // 個別料金更新
   const updateAmount = (index: number, operate: operate) => {
     const newAmounts = [...amounts];
     const currentAmount = newAmounts[index];
@@ -102,9 +103,12 @@ const App = () => {
     setAmounts(newAmounts);
   };
 
+  // 傾斜文字列
   const [maybeKeishaText, setMaybeKeishaText] = useState("");
+
   // 傾斜を読み込む (lz-stringからパース)
   const loadKeisha = () => {
+    // 傾斜文字列読み込み: 始め
     const decompressed = decompressFromBase64(maybeKeishaText.trim());
     if (decompressed === null) return;
 
@@ -113,104 +117,106 @@ const App = () => {
 
     const _keishaResult = vSafeParse(KeishaArraySchema, jsonResult.value);
     if (!_keishaResult.success) return;
-    const _keisha = _keishaResult.output;
 
+    const newKeishaArray = _keishaResult.output;
+    if (
+      newKeishaArray.length > NUM_PEOPLE
+    ) return;
+    // 傾斜文字列読み込み: 終わり
+
+    // warikan計算始めから
     initAmounts();
-    const newAmounts = [...amounts];
-    const newKeisha = [...keisha];
-    if (_keisha.length > newAmounts.length) return;
-    if (_keisha.length > newKeisha.length) return;
 
-    for (let i = 0; i < _keisha.length; i++) {
-      newAmounts[i].name = _keisha[i].name;
-      newAmounts[i].keisha = _keisha[i].keisha;
+    const newAmounts = [...amounts];
+    const newKeishaArrayString = [...keishaArrayString];
+
+    for (let i = 0; i < newKeishaArray.length; i++) {
+      newAmounts[i].name = newKeishaArray[i].name;
+      newAmounts[i].keisha = newKeishaArray[i].keisha;
       newAmounts[i].count = 1;
 
-      newKeisha[i].name = _keisha[i].name;
-      newKeisha[i].keisha = _keisha[i].keisha.toString();
+      newKeishaArrayString[i].name = newKeishaArray[i].name;
+      newKeishaArrayString[i].keisha = newKeishaArray[i].keisha.toString();
     }
+
     setAmounts(newAmounts);
-    setKeisha(newKeisha);
+    setKeishaArrayString(newKeishaArrayString);
   };
 
   // 傾斜が存在するか
-  const existKeisha = () => {
-    let flag = true;
-    for (let i = 0; i < amounts.length; i++) {
-      if (amounts[i].count >= 1 && amounts[i].keisha === undefined) {
-        flag = false;
-        break;
-      }
-    }
-    return flag;
-  };
+  const existKeisha = () =>
+    amounts.every((amount) =>
+      !(amount.count >= 1 && amount.keisha === undefined)
+    );
 
-  // 割り勘計算
+  // 割り勘計算 (ボタンクリック時)
   const warikan = () => {
     // 傾斜なし
     if (!existKeisha()) {
       const totalCount = amounts.reduce((acc, cur) => acc + cur.count, 0);
-      const perAmount = Math.floor(totalAmount / totalCount / minAmount);
-      const newAmounts = [...amounts];
-      for (let i = 0; i < newAmounts.length; i++) {
-        if (newAmounts[i].count === 0) continue;
-        newAmounts[i].amount = perAmount * minAmount;
-      }
+      const perAmount = Math.floor(totalAmount / totalCount / minAmount) *
+        minAmount;
+      const newAmounts = amounts.map((amount) => ({
+        ...amount,
+        amount: amount.count === 0 ? 0 : perAmount,
+      }));
       setAmounts(newAmounts);
     } else {
       // 傾斜あり
-      let totalKeisha = 0;
-      for (let i = 0; i < amounts.length; i++) {
-        if (amounts[i].count <= 0) continue;
-        const keisha = amounts[i].keisha;
-        if (keisha === undefined) continue;
-        totalKeisha += keisha * amounts[i].count;
-      }
-      const newAmounts = [...amounts];
-      for (let i = 0; i < newAmounts.length; i++) {
-        if (newAmounts[i].count === 0) continue;
-        newAmounts[i].amount = Math.floor(
-          totalAmount * (newAmounts[i].keisha || 0) /
-            totalKeisha / minAmount,
+      const totalKeisha = amounts.reduce((acc, cur) => {
+        return cur.count > 0 && cur.keisha !== undefined
+          ? acc + (cur.keisha * cur.count)
+          : acc;
+      }, 0);
+      const newAmounts = amounts.map((amount) => {
+        if (amount.count === 0) {
+          return { ...amount, amount: 0 };
+        }
+        const amountValue = Math.floor(
+          totalAmount * (amount.keisha || 0) / totalKeisha / minAmount,
         ) * minAmount;
-      }
+        return { ...amount, amount: amountValue };
+      });
       setAmounts(newAmounts);
     }
   };
 
-  const [keisha, setKeisha] = useState<KeishaString[]>(Array.from(
-    { length: numPeople },
-    () => ({ name: "", keisha: "" }),
-  ));
   const setName = (index: number, name: string) => {
-    const newKeisha = [...keisha];
+    const newKeisha = [...keishaArrayString];
     newKeisha[index].name = name;
-    setKeisha(newKeisha);
+    setKeishaArrayString(newKeisha);
   };
-  const setKeishaValue = (index: number, value: string) => {
-    const newKeisha = [...keisha];
+  const setKeishaArrayStringValue = (index: number, value: string) => {
+    const newKeisha = [...keishaArrayString];
     newKeisha[index].keisha = value;
-    setKeisha(newKeisha);
+    setKeishaArrayString(newKeisha);
   };
   const calcKeishaLzSting = () => {
-    const newKeisha: Keisha[] = [...keisha].map((k) => {
+    const newKeishaArray = [...keishaArrayString].map((k) => {
       const numResult = safeParse.number(k.keisha);
-      if (numResult.success) {
-        return {
-          name: k.name,
-          keisha: numResult.value,
-        };
-      } else {
+      if (!numResult.success) {
         return {
           name: k.name,
           keisha: 0,
         };
       }
+
+      return {
+        name: k.name,
+        keisha: numResult.value,
+      };
     });
-    const filtered = newKeisha.filter((k) => k.name !== "" && k.keisha !== 0);
+    const filtered = newKeishaArray.filter((k) =>
+      k.name !== "" && k.keisha !== 0
+    );
     const compressed = compressToBase64(JSON.stringify(filtered));
     setMaybeKeishaText(compressed);
   };
+
+  // 初回画面描画時に初期化
+  useEffect(() => {
+    initAmounts();
+  }, []);
 
   return (
     <div className="flex justify-center">
@@ -369,7 +375,7 @@ const App = () => {
                 <p className="mb-2 text-sm font-medium">傾斜文字列計算</p>
 
                 <div className="mb-4 grid gap-4">
-                  {keisha.map((k, index) => (
+                  {keishaArrayString.map((k, index) => (
                     <div key={index} className="flex space-x-2">
                       <Input
                         type="text"
@@ -385,7 +391,7 @@ const App = () => {
                         placeholder="傾斜率"
                         className="text-sm"
                         onChange={(e) =>
-                          setKeishaValue(index, e.target.value)}
+                          setKeishaArrayStringValue(index, e.target.value)}
                       />
                     </div>
                   ))}
