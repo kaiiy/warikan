@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, JapaneseYen, Minus, Plus, UserRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import Button from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   Card,
@@ -84,7 +84,6 @@ const App = () => {
     if (
       newKeishaArray.length > NUM_PEOPLE
     ) return;
-    // 傾斜文字列読み込み: 終わり
 
     // warikan計算始めから
     initAmounts();
@@ -251,7 +250,7 @@ const App = () => {
                 <div key={index}>
                   {/* 名前の表示  */}
                   {(amount.name && amount.keisha) && (
-                    <p className="text-md mb-0 font-medium">
+                    <p className="mb-0 font-medium">
                       | {amount.name} ({amount.keisha})
                     </p>
                   )}
@@ -330,7 +329,7 @@ const App = () => {
               </div>
               <Separator className="mb-4" />
               <div>
-                <p className="mb-2 text-sm font-medium">傾斜文字列計算</p>
+                <p className="mb-1 text-sm font-medium">傾斜文字列計算</p>
 
                 <div className="mb-4 grid gap-4">
                   {keishaArrayString.map((k, index) => (
