@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { forceParse, safeParse } from "@/lib/parse";
 import { Amount, KeishaArrayString, Operate } from "@/lib/type";
+import { GitHubLogoIcon } from "@radix-ui/react-icons";
 
 // 人数
 const NUM_PEOPLE = 12;
@@ -169,7 +170,18 @@ const App = () => {
     <div className="flex justify-center">
       <Card className="w-full md:w-1/2">
         <CardHeader>
-          <CardTitle>Warikan Calculator</CardTitle>
+          <CardTitle className="flex items-center">
+            <p className="flex-1">Warikan Calculator</p>
+            <a
+              href="https://github.com/kaiiy/warikan"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant={"outline"} size={"icon"}>
+                <GitHubLogoIcon className="size-4" />
+              </Button>
+            </a>
+          </CardTitle>
           <CardDescription>
             <p>適切な支払い金額を計算しましょう</p>
             <p>
@@ -315,7 +327,7 @@ const App = () => {
               <div className="mb-4 mt-0">
                 <p className="mb-1 text-sm font-medium">傾斜設定</p>
                 <Textarea
-                  className="mb-2"
+                  className="mb-4"
                   value={maybeKeishaText}
                   placeholder="傾斜文字列を入力してください"
                   onChange={(e) => setMaybeKeishaText(e.target.value)}
