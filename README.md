@@ -1,5 +1,7 @@
 # Warikan Calculator
 
+[![Deploy to GitHub Pages](https://github.com/kaiiy/warikan/actions/workflows/deploy.yml/badge.svg)](https://github.com/kaiiy/warikan/actions/workflows/deploy.yml)
+
 傾斜付き割り勘を計算します
 
 https://kaiiy.github.io/warikan/
